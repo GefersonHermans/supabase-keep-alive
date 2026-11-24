@@ -2,21 +2,23 @@ name: Supabase keep-alive
 
 on:
   schedule:
-    # Roda segunda e quinta às 09:00 (horário de Brasília = 12:00 UTC)
-    - cron: "0 12 * * 1,4"
-  workflow_dispatch: # permite rodar manualmente pela aba Actions
+    - cron: "0 12 * * *"   # todo dia
+  workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Consulta leve no banco
+      - name: Escrita leve no banco
         run: |
-          status=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/keep_alive?select=id&limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}")
+          status=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/keep_alive?id=eq.1" \
+            -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "{\"ultimo_ping\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}")
           echo "HTTP $status"
-          if [ "$status" != "200" ]; then
+          if [ "$status" != "204" ] && [ "$status" != "200" ]; then
             echo "Falha no ping ao Supabase"
             exit 1
           fi
